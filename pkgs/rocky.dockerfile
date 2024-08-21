@@ -77,7 +77,7 @@ for pkg in $(cat /build/artifacts.txt|awk -F'=' '{print $1}') ; do \
     mkdir -p "$tmp/share/extension" ;\
     cp -a /build/packaged/$pkg--*.so        "$tmp/lib/"             2>/dev/null || true ;\
     cp -a /build/packaged/extension/$pkg--* "$tmp/share/extension/" 2>/dev/null || true ;\
-    ${GEM_HOME}/bin/fpm \
+    eval ${GEM_HOME}/bin/fpm \
         --input-type dir \
         --output-type rpm \
         --name $pkg \
@@ -88,12 +88,6 @@ for pkg in $(cat /build/artifacts.txt|awk -F'=' '{print $1}') ; do \
         $deps \
         . ;\
 done
-# NOTE THAT IT WOULD BE BETTER TO HAVE --depends 'xyz >= 1.0' FOR EACH
-# DEPENDENCY BUT FPM BARFS ON THIS EVEN THOUGH THE --help SAYS IT'S FINE. I
-# FOUND ALMOST NO EXAMPLES (2?) OF ANYONE USING OPERATORS ON RPM DEPENDENCIES
-# FOR RPM BUILDS ON GITHUB. THIS IS A BUG IN FPM THAT CAUSED FRUSTRATION. IT
-# MIGHT LATER CAUSE UPGRADE PROBLEMS IF OMNIGRES CAN'T CAREFULLY DEFINE
-# DEPENDENCY MINIMIMUMS. IN PRACTICE MAYBE IT'S NOT A BIG DEAL. TIME WILL TELL.
 
 # TEST INSTALL
 RUN rpm -ivh *.rpm
