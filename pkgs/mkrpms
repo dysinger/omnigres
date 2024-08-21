@@ -8,12 +8,16 @@ for pkg in $(cat /build/artifacts.txt|awk -F'=' '{print $1}') ; do
     deps="--depends postgresql$POSTGRES_VER"
     for d in $(echo $pkgline|awk -F'#' '{print $2}'|tr ',' ' ') ; do
         n=$(echo $d|awk -F'=' '{print $1}')
-        _=$(echo $d|awk -F'=' '{print $2}')
+        v=$(echo $d|awk -F'=' '{print $2}')
         case $n in \
             dblink|pgcrypto) n="postgresql$POSTGRES_VER-contrib"   ;;
             plpy*)           n="postgresql$POSTGRES_VER-plpython3" ;;
         esac
-        deps="$deps --depends $n"
+        if [ "$v" = "*" ]; then
+            deps="$deps --depends '$n'"
+        else
+            deps="$deps --depends '$n >= $v'"
+        fi
     done
     tmp=$(mktemp -d)
     mkdir -p "$tmp/lib"
