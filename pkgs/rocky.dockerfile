@@ -75,11 +75,12 @@ for pkg in $(cat /build/artifacts.txt|awk -F'=' '{print $1}') ; do \
     tmp=$(mktemp -d) ;\
     mkdir -p "$tmp/lib" ;\
     mkdir -p "$tmp/share/extension" ;\
-    cp -a /build/packaged/$pkg--*.so        "$tmp/lib/"             2>/dev/null || true ;\
+    cp -a /build/packaged/$pkg--*.so        "$tmp/lib/"             2>/dev/null && arch=native || arch=all ;\
     cp -a /build/packaged/extension/$pkg--* "$tmp/share/extension/" 2>/dev/null || true ;\
     eval ${GEM_HOME}/bin/fpm \
         --input-type dir \
         --output-type rpm \
+        --architecture $arch \
         --name $pkg \
         --version $vers \
         --iteration $ITERATION \
