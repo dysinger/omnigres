@@ -27,8 +27,8 @@ for arch in $(echo $ARCH|tr ',' ' '); do
     # laptop. On a beefy CI machine, it might be better to do this in one pass
     # maxing the machine with parallel builds like the following example:
     # `docker buildx build --platform linux/amd64,linux/arm64 --push`
-    ROCKY_IMAGE_NAME=omnigres:rocky-pgdg${POSTGRES_VER}-$(echo $arch|sed "s/linux\///")-$REVISION
-    ROCKY_CONTAINER_NAME=$(cat /proc/*/*/*/uuid||uuidgen) ;# WORKS ON LINUX & MACOS
+    ROCKY_IMAGE_NAME=omnigres:rocky-9-pgdg${POSTGRES_VER}-$(echo $arch|sed "s/linux\///")-$REVISION-$ITERATION
+    ROCKY_CONTAINER_NAME=$(echo $ROCKY_IMAGE_NAME|tr ':' '-')-$(cut -c1-6 <(cat /proc/*/*/*/uuid||uuidgen)) ;# WORKS ON LINUX & MACOS
     docker buildx build \
            --progress plain \
            --platform $arch \
