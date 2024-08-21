@@ -21,9 +21,6 @@ ITERATION=${ITERATION:-1}
 # GIT REVISION OF SOURCE
 REVISION=${REVISION:-"$(git rev-parse --short HEAD)"}
 
-# READ VERSIONS
-source "${DIR}/versions.txt"
-
 # BULID FOR REDHAT.
 for arch in $(echo $ARCH|tr ',' ' '); do
     # NOTE: I have this building architectures sequentially because I'm on a
