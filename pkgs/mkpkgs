@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-# NOTE: you'll need to create a arm64 buildx container first
+# NOTE: You'll possibly need to create a arm64 or amd64 buildx container first
+# if you are on another architecture.
+#
 # `docker buildx create --platform linux/arm64 --use`
 # `docker buildx inspect <name of container> --bootstrap`
 # `docker buildx ls` should show it running & ready for arm64
