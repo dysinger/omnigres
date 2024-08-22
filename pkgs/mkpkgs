@@ -22,13 +22,13 @@ ITERATION=${ITERATION:-1}
 REVISION=${REVISION:-"$(git rev-parse --short HEAD)"}
 
 # BULID FOR REDHAT.
-for arch in $(echo "$ARCH"|tr ',' ' '); do
+for arch in ${ARCH/,/ }; do
     # NOTE: I have this building architectures sequentially because I'm on a
     # laptop. On a beefy CI machine, it might be better to do this in one pass
     # maxing the machine with parallel builds like the following example:
     # `docker buildx build --platform linux/amd64,linux/arm64 --push`
     ROCKY_IMAGE_NAME="omnigres:rocky-9-pgdg${POSTGRES_VER}-${arch/linux\/}-$REVISION-$ITERATION"
-    ROCKY_CONTAINER_NAME="$(echo "$ROCKY_IMAGE_NAME"|tr ':' '-')-$(cut -c1-6 <(cat /proc/*/*/*/uuid||uuidgen))" ;# WORKS ON LINUX & MACOS
+    ROCKY_CONTAINER_NAME="${ROCKY_IMAGE_NAME/:/-}-$(cut -c1-6 <(cat /proc/*/*/*/uuid||uuidgen))" ;# WORKS ON LINUX & MACOS
     docker buildx build \
            --progress plain \
            --platform "$arch" \
@@ -39,8 +39,8 @@ for arch in $(echo "$ARCH"|tr ',' ' '); do
            --load \
            "$DIR"
     trap '{
-        docker stop "$ROCKY_CONTAINER_NAME" >/dev/null 2>&1 || true
-        docker rm   "$ROCKY_CONTAINER_NAME" >/dev/null 2>&1 || true
+        docker stop "$ROCKY_CONTAINER_NAME"  >/dev/null 2>&1 || true
+        docker rm   "$ROCKY_CONTAINER_NAME"  >/dev/null 2>&1 || true
     }' EXIT
     docker run --platform "$arch" -d --name "$ROCKY_CONTAINER_NAME" "$ROCKY_IMAGE_NAME" tail -f /dev/null
     docker cp "$ROCKY_CONTAINER_NAME":/pkgs "$DIR/"
