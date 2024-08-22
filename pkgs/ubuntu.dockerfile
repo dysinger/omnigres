@@ -4,31 +4,32 @@ ARG UBUNTU_VER=noble
 
 FROM ubuntu:${UBUNTU_VER} AS builder-ubuntu
 
-ARG UBUNTU_VER
 ARG POSTGRES_VER=16
+ARG UBUNTU_VER
 
-ENV UBUNTU_VER=${UBUNTU_VER}
-ENV POSTGRES_VER=${POSTGRES_VER}
-
-# UPDATE / UPGRADE
+# UPDATE
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y
 
-# SUDO (USEFUL FOR EXPERIMENTS WITHOUT BEING ROOT ALL THE TIME)
+# SUDO IS USEFUL IF YOU WANT TO RUN AS YOUR OWN HOST'S USER & NOT ROOT
+# E.G. `docker run -i -t --rm --user $(id -u):100 -v $PWD:/omni <image>`
+# THIS WILL POP YOU INTO A CONTAINER WHERE YOU ARE 'ubuntu' IN THE GROUP
+# 'users'. AND THE FILES YOU TOUCH/WRITE IN /omni WILL BE OWNED BY THE SAME
+# USER ID AS YOUR HOST.
 RUN apt-get install -y sudo
 RUN echo 'ubuntu ALL=(ALL) NOPASSWD: ALL' | tee /etc/sudoers.d/ubuntu
-RUN useradd -g users -m redhat
 
-# POSTGRES SERVER
+# POSTGRES
 RUN apt install -y postgresql-common
 RUN yes|/usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 RUN apt-get update
 RUN apt-get install -y \
     postgresql-${POSTGRES_VER} \
+    postgresql-contrib-${POSTGRES_VER} \
     postgresql-plpython3-${POSTGRES_VER} \
     postgresql-server-dev-${POSTGRES_VER}
 
-# DEPENDENCIES
+# DEPS
 RUN apt-get install -y -t ${UBUNTU_VER}-backports cmake
 RUN apt-get install -y \
     build-essential \
@@ -42,41 +43,25 @@ RUN apt-get install -y \
     python3-dev \
     python3-venv
 
-# FPM FOR PACKAGES
+# FPM
 RUN apt-get install -y ruby ruby-dev ruby-rubygems squashfs-tools
 ENV GEM_HOME=/usr/local
 RUN gem install fpm
 
-# VERSION ARGS
-ARG OMNI_VER
-ARG OMNI_CONTAINERS_VER
-ARG OMNI_HTTPC_VER
-ARG OMNI_HTTPD_VER
-ARG OMNI_SEQ_VER
-ARG OMNI_SQL_VER
-ARG OMNI_TYPES_VER
-ARG OMNI_VAR_VER
-ARG OMNI_WEB_VER
-ARG OMNI_XML_VER
-ARG RELEASE=1
+ARG ITERATION=1
 
 COPY ./ /omni
 WORKDIR /build
 
+# BUILD
 RUN cmake -DPG_CONFIG=$(which pg_config) -DOPENSSL_CONFIGURED=1 /omni
-RUN INCLUDE_PATH="$(dirname $(which pg_config) --include-dir-server)" make -j all
+RUN make -j all
 RUN make package_extensions
 
-WORKDIR /artifacts
+WORKDIR /pkgs
 
-RUN mkdir -p /build/pkgs/omni-${OMNI_VER}/{lib/postgresql/${POSTGRES_VER}/lib,share/postgresql/${POSTGRES_VER}/extension}
-RUN cp /build/packaged/omni--*.so /build/pkgs/omni-${OMNI_VER}/lib/postgresql/${POSTGRES_VER}/lib/
-RUN cp /build/packaged/extension/omni--* /build/pkgs/omni-${OMNI_VER}/share/postgresql/${POSTGRES_VER}/extension/
-RUN fpm \
-    -s dir \
-    -t deb \
-    --prefix /usr \
-    -n omni \
-    -v ${OMNI_VER}-${RELEASE} \
-    -p omni-${OMNI_VER}-${RELEASE}.$(uname -m).deb \
-    -C /build/pkgs/omni-${OMNI_VER}/
+# PACKAGING
+RUN /omni/pkgs/mkdebs
+
+# TEST INSTALL
+RUN dpkg -i *.deb
